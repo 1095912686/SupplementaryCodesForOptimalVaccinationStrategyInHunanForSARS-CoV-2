@@ -1,0 +1,38 @@
+function [nVC,nVCC] = vaccineConvergenceViaData()
+
+ImportAgePartition;
+caseContactData = readtable('caseContactDataForDecomposition.xlsx');
+caseNames = unique(caseContactData.caseNameIncaseData); 
+caseNames(1) = []; % delete the empty
+contactNames = caseContactData.contactName;
+contactAge = caseContactData.contactAge;
+vaccines = caseContactData(:,30:end);
+
+nVC = zeros(numel(agePartition)-1, 4);
+nVCC = zeros(numel(agePartition)-1, 4);
+for i = 1:size(caseContactData,1)
+    
+    % skip the missing contactAges
+    if isnan(contactAge(i))
+        continue;
+    end
+
+    % how many doses this contact has taken
+    dosei = ~isempty(vaccines.time1{i}) + ~isempty(vaccines.time2{i}) + ~isempty(vaccines.time3{i});
+
+    % which group this contact belongs to
+    groupi = whichGroup(contactAge(i), agePartition);
+
+    % add this contact to corresponding age-stratified coverage table
+    nVC(groupi, dosei + 1) = nVC(groupi, dosei + 1) + 1;
+
+    % if the contact is a case, save to nVCC
+    if sum(strcmp(contactNames(i), caseNames)) >= 1
+        nVCC(groupi, dosei + 1) = nVCC(groupi, dosei + 1) + 1 / sum(strcmp(contactNames,contactNames(i)));
+    end
+end
+
+writematrix(nVC,'nVC.xlsx');
+writematrix(nVCC,'nVCC.xlsx');
+1;
+end
